@@ -1,5 +1,6 @@
 <html>
     <head>
+        <link href="planner.css" rel="stylesheet">
         <script src="planner.js" type="text/javascript"></script>
     </head>
     <body>
@@ -9,6 +10,9 @@
                 <button type="button" data-mode="walls">Draw Walls</button>
                 <button type="button" data-mode="objects">Draw Objects</button>
             </div>
+        </div>
+        <div id="wall_controls">
+            <button type="button" id="undo-add-wall" class="hidden">Undo add wall</button>
         </div>
         <div>
             <canvas id="planner" height="700" width="700" style="border: 1px

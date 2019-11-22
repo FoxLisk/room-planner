@@ -91,7 +91,8 @@ function Grid(canvas, corner_offset, dot_radius, dot_spacing) {
 function RoomPlanner(canvas) {
     var canvas = canvas;
     var ctx = canvas.getContext('2d');
-    var buttons = document.getElementById('buttons');
+    const buttons = document.getElementById('buttons');
+    const undo_add_wall = document.getElementById('undo-add-wall');
     const mode_span = document.getElementById('current-mode');
     const CORNER_OFFSET = 10;
     const w = canvas.getAttribute('width');
@@ -192,6 +193,11 @@ function RoomPlanner(canvas) {
         }
     }
 
+    function add_wall(wall) {
+        walls.push(wall);
+        undo_add_wall.classList.remove('hidden');
+    }
+
     function handle_walls_mousedown(event) {
         if (state.walls.mode !== 'start') {
             alert('bad wall state');
@@ -224,7 +230,7 @@ function RoomPlanner(canvas) {
         var pos = get_mouse_pos(event);
         var end = grid.find_closest_dot(pos);
         var wall = draw_wall(state.walls.start_dot, end);
-        walls.push(wall);
+        add_wall(wall);
         reinit_wall_state();
     }
 
@@ -246,6 +252,17 @@ function RoomPlanner(canvas) {
         }
     }
 
+    function handle_undo_add_wall(event) {
+        if (walls.length === 0) {
+            return;
+        }
+        walls.pop();
+        if (walls.length === 0) {
+            undo_add_wall.classList.add('hidden');
+        }
+        redraw();
+    }
+
 
     this.init = function() {
         reinit_wall_state();
@@ -256,6 +273,7 @@ function RoomPlanner(canvas) {
         canvas.addEventListener('mousedown', handle_mousedown);
         canvas.addEventListener('mousemove', handle_mousemove);
         canvas.addEventListener('mouseup', handle_mouseup);
+        undo_add_wall.addEventListener('click', handle_undo_add_wall);
     }
 
 }
