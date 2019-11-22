@@ -15,9 +15,10 @@
             <button type="button" id="undo-add-wall" class="hidden">Undo add wall</button>
         </div>
         <div class="container">
-            <canvas class="left" id="planner" height="300" width="700"></canvas>
-                <form class="right" id="add-object">
-                    <h3>Add new object</h3>
+            <canvas id="planner" height="300" width="700"></canvas>
+            <div>
+                <h3>Add new object</h3>
+                <form id="add-object">
                     <div>Units are the spacing between grid dots; the grid is
                         <span id="grid-width"></span> by
                         <span id="grid-height"></span>
@@ -26,10 +27,15 @@
                     <input type="number" name="width"></input>
                     <label for="height">Height</label>
                     <input type="number" name="height"></input>
-                    <label for="name">Name</input>
+                    <label for="name">Name</label>
                     <input type="text" name="name"></input>
-                    <button type="button" name="submit">Submit</input>
+                    <button type="submit" name="submit">Submit</button>
                 </form>
+            </div>
+            <div id="object-inventory" class="hidden">
+                <h3>Defined objects</h3>
+
+            </div>
         </div>
     </body>
 </html>

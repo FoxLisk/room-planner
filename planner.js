@@ -98,11 +98,16 @@ function Grid(canvas, corner_offset, dot_radius, dot_spacing) {
 function RoomPlanner(canvas) {
     var canvas = canvas;
     var ctx = canvas.getContext('2d');
+
     const buttons = document.getElementById('buttons');
     const undo_add_wall = document.getElementById('undo-add-wall');
     const mode_span = document.getElementById('current-mode');
     const grid_width_span = document.getElementById('grid-width');
     const grid_height_span = document.getElementById('grid-height');
+    const add_object_form = document.getElementById('add-object');
+    const object_inventory_div = document.getElementById('object-inventory');
+
+
     const CORNER_OFFSET = 10;
     const w = canvas.getAttribute('width');
     const h = canvas.getAttribute('height');
@@ -116,6 +121,7 @@ function RoomPlanner(canvas) {
     };
 
     var walls = [];
+    var objects = [];
 
     // stolen from https://stackoverflow.com/a/33063222
     function get_mouse_pos(evt) {
@@ -272,20 +278,51 @@ function RoomPlanner(canvas) {
         redraw();
     }
 
+    function add_obj(obj) {
+        var div = document.createElement('div');
+        div.innerHTML = String(obj);
+        object_inventory_div.appendChild(div);
+        object_inventory_div.classList.remove('hidden');
+    }
+
+    function handle_add_object(event) {
+        event.preventDefault();
+        var width = parseInt(add_object_form.elements.width.value, 10);
+        var height = parseInt(add_object_form.elements.height.value, 10);
+        var name = add_object_form.elements.name.value;
+        if (isNaN(width)) {
+            alert('Must enter integer width');
+            return;
+        }
+        if (isNaN(height)) {
+            alert('Must enter integer height');
+            return;
+        }
+        if (name === '') {
+            alert('Must enter name');
+            return;
+        }
+        add_obj({
+            width: width,
+            height: height,
+            name: name,
+        });
+    }
 
     this.init = function() {
         reinit_wall_state();
         build_grid();
         redraw();
-        //canvas.addEventListener('click', highlight_nearest_dot);
+        var dimensions = grid.dimensions();
+        grid_width_span.innerText = dimensions.width;
+        grid_height_span.innerText = dimensions.height;
+
         buttons.addEventListener('click', handle_mode_change);
         canvas.addEventListener('mousedown', handle_mousedown);
         canvas.addEventListener('mousemove', handle_mousemove);
         canvas.addEventListener('mouseup', handle_mouseup);
         undo_add_wall.addEventListener('click', handle_undo_add_wall);
-        var dimensions = grid.dimensions();
-        grid_width_span.innerText = dimensions.width;
-        grid_height_span.innerText = dimensions.height;
+        add_object_form.addEventListener('submit', handle_add_object);
     }
 
 }

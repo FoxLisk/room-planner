@@ -3,29 +3,20 @@
 }
 
 .container {
-    float: left;
+    display: flex;
 }
 
 #planner {
-    /*
-    width: 700px;
-    height: 500px;
-    */
     border: 1px solid black;
     background: pink;
     display: block;
-
     margin-right: 10px;
 }
 
-.left {
-    float: left;
+#add-object {
+    width: 150px;
 }
 
-.right {
-    float: right;
-}
-
-form input {
+#add-object input {
     display: block;
 }
