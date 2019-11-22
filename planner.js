@@ -20,7 +20,7 @@ function Grid(canvas, corner_offset, dot_radius, dot_spacing) {
     const xstart = corner_offset + dot_radius;
     const xend = w - corner_offset - dot_radius;
     const ystart = corner_offset + dot_radius;
-    const yend = w - corner_offset - dot_radius;
+    const yend = h - corner_offset - dot_radius;
 
     function init() {
         points = [];
@@ -85,6 +85,13 @@ function Grid(canvas, corner_offset, dot_radius, dot_spacing) {
         }
     }
 
+    this.dimensions = function() {
+        return {
+            width: points.length,
+            height: points[0].length,
+        }
+    }
+
     init();
 }
 
@@ -94,6 +101,8 @@ function RoomPlanner(canvas) {
     const buttons = document.getElementById('buttons');
     const undo_add_wall = document.getElementById('undo-add-wall');
     const mode_span = document.getElementById('current-mode');
+    const grid_width_span = document.getElementById('grid-width');
+    const grid_height_span = document.getElementById('grid-height');
     const CORNER_OFFSET = 10;
     const w = canvas.getAttribute('width');
     const h = canvas.getAttribute('height');
@@ -274,6 +283,9 @@ function RoomPlanner(canvas) {
         canvas.addEventListener('mousemove', handle_mousemove);
         canvas.addEventListener('mouseup', handle_mouseup);
         undo_add_wall.addEventListener('click', handle_undo_add_wall);
+        var dimensions = grid.dimensions();
+        grid_width_span.innerText = dimensions.width;
+        grid_height_span.innerText = dimensions.height;
     }
 
 }

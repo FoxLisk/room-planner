@@ -8,15 +8,28 @@
             Current mode: <span id="current-mode">N/A</span>
             <div id="buttons">
                 <button type="button" data-mode="walls">Draw Walls</button>
-                <button type="button" data-mode="objects">Draw Objects</button>
+                <button type="button" data-mode="objects">Move Objects</button>
             </div>
         </div>
         <div id="wall_controls">
             <button type="button" id="undo-add-wall" class="hidden">Undo add wall</button>
         </div>
-        <div>
-            <canvas id="planner" height="700" width="700" style="border: 1px
-                        solid black;"></canvas>
+        <div class="container">
+            <canvas class="left" id="planner" height="300" width="700"></canvas>
+                <form class="right" id="add-object">
+                    <h3>Add new object</h3>
+                    <div>Units are the spacing between grid dots; the grid is
+                        <span id="grid-width"></span> by
+                        <span id="grid-height"></span>
+                    </div>
+                    <label for="width">Width</label>
+                    <input type="number" name="width"></input>
+                    <label for="height">Height</label>
+                    <input type="number" name="height"></input>
+                    <label for="name">Name</input>
+                    <input type="text" name="name"></input>
+                    <button type="button" name="submit">Submit</input>
+                </form>
         </div>
     </body>
 </html>

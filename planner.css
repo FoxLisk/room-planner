@@ -1,0 +1,31 @@
+.hidden {
+    visibility: hidden;
+}
+
+.container {
+    float: left;
+}
+
+#planner {
+    /*
+    width: 700px;
+    height: 500px;
+    */
+    border: 1px solid black;
+    background: pink;
+    display: block;
+
+    margin-right: 10px;
+}
+
+.left {
+    float: left;
+}
+
+.right {
+    float: right;
+}
+
+form input {
+    display: block;
+}
