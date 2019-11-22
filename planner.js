@@ -4,6 +4,82 @@ function assert(val, msg) {
     }
 }
 
+function Grid(canvas, corner_offset, dot_radius, dot_spacing) {
+    var points = null;
+    var dot_radius = dot_radius;
+
+    // TODO: context.scale might be a better way of dealing with this
+    var dot_spacing = dot_spacing;
+    // N.B. context.translate seems unlikely to be an improvement for the
+    // corner offset, since i want an offset on *each* corner.
+    var corner_offset = corner_offset;
+    const w = canvas.getAttribute('width');
+    const h = canvas.getAttribute('height');
+    const xstart = corner_offset + dot_radius;
+    const xend = w - corner_offset - dot_radius;
+    const ystart = corner_offset + dot_radius;
+    const yend = w - corner_offset - dot_radius;
+
+    function init() {
+        points = [];
+        for (var x = xstart; x < xend; x += dot_spacing) {
+            cur_row = [];
+            for (var y = ystart; y < yend; y += dot_spacing) {
+                point = {
+                    x: x,
+                    y: y,
+                    color: '#000000',
+                }
+                cur_row.push(point)
+            }
+            points.push(cur_row);
+        }
+    }
+
+    function draw_dot(ctx, x, y) {
+        point = points[x][y]
+        // is doing so many beginPath/fills going to be a performance issue?
+        // probably but i will worry about it when i get there, maybe
+        ctx.beginPath();
+        ctx.moveTo(point.x, point.y);
+        ctx.arc(point.x, point.y, dot_radius, 0, 2*Math.PI);
+        ctx.fillStyle = point.color
+        ctx.fill();
+    }
+
+    // take x, y as position on canvas, return x, y s.t. points[x][y] is
+    // nearest point
+    this.find_closest_dot = function(pos) {
+        var closest = points[0];
+        scaled_x = Math.round((pos.x - corner_offset) / dot_spacing);
+        scaled_y = Math.round((pos.y - corner_offset) / dot_spacing);
+        return {
+            x_coord: scaled_x,
+            y_coord: scaled_y,
+        }
+
+    }
+
+    this.color_dot = function(dot_coords, color) {
+        var dot = points[dot_coords.x_coord][dot_coords.y_coord];
+        if (dot.color !== color) {
+            dot.color = color;
+            dot.dirty = true;
+        }
+    }
+
+    this.draw = function(ctx) {
+        ctx.clearRect(0, 0, w, h);
+        for (var i = 0; i < points.length; i++) {
+            for (var j = 0; j < points[i].length; j++) {
+                draw_dot(ctx, i, j);
+            }
+        }
+    }
+
+    init();
+}
+
 function RoomPlanner(canvas) {
     var canvas = canvas;
     var ctx = canvas.getContext('2d');
@@ -16,7 +92,7 @@ function RoomPlanner(canvas) {
     const DOT_RAD = 2;
     const DOT_SPACING = 16;
 
-    var dots = [];
+    var grid = null;
 
     // stolen from https://stackoverflow.com/a/33063222
     function get_mouse_pos(evt) {
@@ -32,54 +108,24 @@ function RoomPlanner(canvas) {
         ctx.arc(x, y, DOT_RAD, 0, 2*Math.PI);
     }
 
+    function build_grid() {
+        grid = new Grid(canvas, CORNER_OFFSET, DOT_RAD, DOT_SPACING);
+    }
 
-    function draw_dots() {
-        const xstart = CORNER_OFFSET + DOT_RAD;
-        const xend = w - CORNER_OFFSET - DOT_RAD;
-        const ystart = CORNER_OFFSET + DOT_RAD;
-        const yend = h - CORNER_OFFSET - DOT_RAD;
-
-        ctx.beginPath();
-        dots = [];
-        for (var x = xstart; x < xend; x += DOT_SPACING) {
-            cur_col = [];
-            for (var y = ystart; y < yend; y += DOT_SPACING) {
-                draw_dot(x, y)
-                cur_col.push(y)
-            }
-            dots.push({
-                x: x,
-                ys: cur_col,
-            });
-        }
-        ctx.fillStyle = '#000000';
-        ctx.fill();
+    function redraw() {
+        grid.draw(ctx);
     }
 
     function highlight_nearest_dot(event) {
         var pos = get_mouse_pos(event);
-        var closest = dots[0];
-        for (var i = 0; i < dots.length; i++) {
-            if (Math.abs(dots[i].x - pos.x) <= Math.abs(closest.x - pos.x)) {
-                closest = dots[i];
-            }
-        }
-        var best_y = closest.ys[0];
-        for (var j = 0; j < closest.ys.length; j++) {
-            var ytmp = closest.ys[j];
-            if (Math.abs(ytmp - pos.y) <= Math.abs(best_y - pos.y)) {
-                best_y = ytmp;
-            }
-        }
-
-        ctx.beginPath();
-        ctx.fillStyle = '#FF0000';
-        draw_dot(closest.x, best_y);
-        ctx.fill();
+        var dot = grid.find_closest_dot(pos);
+        grid.color_dot(dot, '#FF0000');
+        redraw();
     }
 
     function set_mode(mode) {
         mode_span.innerHTML = mode;
+        current_mode = mode;
     }
 
     function handle_mode_change(event) {
@@ -90,9 +136,11 @@ function RoomPlanner(canvas) {
 
 
     this.init = function() {
-        draw_dots();
+        build_grid();
+        redraw();
         canvas.addEventListener('click', highlight_nearest_dot);
         buttons.addEventListener('click', handle_mode_change);
+        //canvas.addEventListener('onmousedown', 
     }
 
 }
