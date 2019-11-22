@@ -7,11 +7,14 @@ function assert(val, msg) {
 function RoomPlanner(canvas) {
     var canvas = canvas;
     var ctx = canvas.getContext('2d');
+    var buttons = document.getElementById('buttons');
+    var current_mode = null;
+    const mode_span = document.getElementById('current-mode');
     const CORNER_OFFSET = 10;
     const w = canvas.getAttribute('width');
     const h = canvas.getAttribute('height');
-    const DOT_RAD = 1;
-    const DOT_SPACING = 13;
+    const DOT_RAD = 2;
+    const DOT_SPACING = 16;
 
     var dots = [];
 
@@ -75,10 +78,21 @@ function RoomPlanner(canvas) {
         ctx.fill();
     }
 
+    function set_mode(mode) {
+        mode_span.innerHTML = mode;
+    }
+
+    function handle_mode_change(event) {
+        if (event.target.dataset.mode) {
+            set_mode(event.target.dataset.mode);
+        }
+    }
+
 
     this.init = function() {
         draw_dots();
         canvas.addEventListener('click', highlight_nearest_dot);
+        buttons.addEventListener('click', handle_mode_change);
     }
 
 }
