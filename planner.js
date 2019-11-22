@@ -78,7 +78,6 @@ function Grid(canvas, corner_offset, dot_radius, dot_spacing) {
     }
 
     this.draw = function(ctx) {
-        ctx.clearRect(0, 0, w, h);
         for (var i = 0; i < points.length; i++) {
             for (var j = 0; j < points[i].length; j++) {
                 draw_dot(ctx, i, j);
@@ -104,12 +103,9 @@ function RoomPlanner(canvas) {
 
     var current_mode = null;
     var state = {
-        walls: {
-            mode: 'start',
-            x: null,
-            y: null,
-        }
     };
+
+    var walls = [];
 
     // stolen from https://stackoverflow.com/a/33063222
     function get_mouse_pos(evt) {
@@ -129,8 +125,17 @@ function RoomPlanner(canvas) {
         grid = new Grid(canvas, CORNER_OFFSET, DOT_RAD, DOT_SPACING);
     }
 
+    function draw_walls() {
+        for (var i = 0; i < walls.length; i++) {
+            console.log('drawing ', walls[i]);
+            draw_wall(walls[i].start, walls[i].end);
+        }
+    }
+
     function redraw() {
+        ctx.clearRect(0, 0, w, h);
         grid.draw(ctx);
+        draw_walls();
     }
 
     function highlight_nearest_dot(event) {
@@ -151,6 +156,42 @@ function RoomPlanner(canvas) {
         }
     }
 
+    function draw_wall(start, end) {
+        var dx = Math.abs(end.x_coord - start.x_coord);
+        var dy = Math.abs(end.y_coord - start.y_coord);
+        var true_end = {
+            x_coord: end.x_coord,
+            y_coord: end.y_coord,
+        }
+        if (dx < dy) {
+            true_end.x_coord = start.x_coord;
+        } else {
+            true_end.y_coord = start.y_coord;
+        }
+        var start_coords = grid.canvas_coords(start);
+        var end_coords = grid.canvas_coords(true_end);
+
+        ctx.beginPath();
+        ctx.moveTo(start_coords.x, start_coords.y);
+        ctx.lineTo(end_coords.x, end_coords.y);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#00FF00';
+        ctx.stroke();
+
+        return {
+            start: Object.assign({}, start),
+            end: Object.assign({}, true_end),
+        };
+
+    }
+
+    function reinit_wall_state() {
+        state.walls = {
+            mode: 'start',
+            start_dot: null,
+        }
+    }
+
     function handle_walls_mousedown(event) {
         if (state.walls.mode !== 'start') {
             alert('bad wall state');
@@ -163,24 +204,17 @@ function RoomPlanner(canvas) {
         }
     }
 
-    function draw_wall(mouse_pos) {
-        var closest_dot = grid.find_closest_dot(mouse_pos);
-        var dx = Math.abs(closest_dot.x_coord - state.walls.start_dot.x_coord);
-        var dy = Math.abs(closest_dot.y_coord - state.walls.start_dot.y_coord);
-        if (dx < dy) {
-            closest_dot.x_coord = state.walls.start_dot.x_coord;
-        } else {
-            closest_dot.y_coord = state.walls.start_dot.y_coord;
+    function handle_walls_mousemove(event) {
+        if (state.walls.mode !== 'drawing') {
+            // only wanna do this shit while the mouse is down
+            return;
         }
-        var start_coords = grid.canvas_coords(state.walls.start_dot);
-        var end_coords = grid.canvas_coords(closest_dot);
-
-        ctx.beginPath();
-        ctx.moveTo(start_coords.x, start_coords.y);
-        ctx.lineTo(end_coords.x, end_coords.y);
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = '#00FF00';
-        ctx.stroke();
+        console.log('mousemove');
+        var pos = get_mouse_pos(event);
+        var end = grid.find_closest_dot(pos);
+        redraw();
+        draw_wall(state.walls.start_dot, end);
+        console.log('end mousemove');
     }
 
     function handle_walls_mouseup(event) {
@@ -188,13 +222,21 @@ function RoomPlanner(canvas) {
             alert('bad wall state');
         }
         var pos = get_mouse_pos(event);
-        draw_wall(pos);
-        state.walls.mode = 'start';
+        var end = grid.find_closest_dot(pos);
+        var wall = draw_wall(state.walls.start_dot, end);
+        walls.push(wall);
+        reinit_wall_state();
     }
 
     function handle_mousedown(event) {
         if (current_mode === 'walls') {
             handle_walls_mousedown(event);
+        }
+    }
+
+    function handle_mousemove(event) {
+        if (current_mode === 'walls') {
+            handle_walls_mousemove(event);
         }
     }
 
@@ -206,11 +248,13 @@ function RoomPlanner(canvas) {
 
 
     this.init = function() {
+        reinit_wall_state();
         build_grid();
         redraw();
         //canvas.addEventListener('click', highlight_nearest_dot);
         buttons.addEventListener('click', handle_mode_change);
         canvas.addEventListener('mousedown', handle_mousedown);
+        canvas.addEventListener('mousemove', handle_mousemove);
         canvas.addEventListener('mouseup', handle_mouseup);
     }
 
