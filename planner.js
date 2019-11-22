@@ -1,3 +1,5 @@
+"use strict";
+
 function assert(val, msg) {
     if (!val) {
         alert('assertion error: ' + msg + ' \n (' + val + ')');
@@ -23,21 +25,20 @@ function Grid(canvas, corner_offset, dot_radius, dot_spacing) {
     function init() {
         points = [];
         for (var x = xstart; x < xend; x += dot_spacing) {
-            cur_row = [];
+            var cur_row = [];
             for (var y = ystart; y < yend; y += dot_spacing) {
-                point = {
+                cur_row.push({
                     x: x,
                     y: y,
                     color: '#000000',
-                }
-                cur_row.push(point)
+                });
             }
             points.push(cur_row);
         }
     }
 
     function draw_dot(ctx, x, y) {
-        point = points[x][y]
+        var point = points[x][y]
         // is doing so many beginPath/fills going to be a performance issue?
         // probably but i will worry about it when i get there, maybe
         ctx.beginPath();
@@ -47,12 +48,20 @@ function Grid(canvas, corner_offset, dot_radius, dot_spacing) {
         ctx.fill();
     }
 
+    this.canvas_coords = function(dot) {
+        var point = points[dot.x_coord][dot.y_coord];
+        return {
+            x: point.x,
+            y: point.y,
+        };
+    }
+
     // take x, y as position on canvas, return x, y s.t. points[x][y] is
     // nearest point
     this.find_closest_dot = function(pos) {
         var closest = points[0];
-        scaled_x = Math.round((pos.x - corner_offset) / dot_spacing);
-        scaled_y = Math.round((pos.y - corner_offset) / dot_spacing);
+        var scaled_x = Math.round((pos.x - corner_offset) / dot_spacing);
+        var scaled_y = Math.round((pos.y - corner_offset) / dot_spacing);
         return {
             x_coord: scaled_x,
             y_coord: scaled_y,
@@ -84,7 +93,6 @@ function RoomPlanner(canvas) {
     var canvas = canvas;
     var ctx = canvas.getContext('2d');
     var buttons = document.getElementById('buttons');
-    var current_mode = null;
     const mode_span = document.getElementById('current-mode');
     const CORNER_OFFSET = 10;
     const w = canvas.getAttribute('width');
@@ -93,6 +101,15 @@ function RoomPlanner(canvas) {
     const DOT_SPACING = 16;
 
     var grid = null;
+
+    var current_mode = null;
+    var state = {
+        walls: {
+            mode: 'start',
+            x: null,
+            y: null,
+        }
+    };
 
     // stolen from https://stackoverflow.com/a/33063222
     function get_mouse_pos(evt) {
@@ -134,13 +151,67 @@ function RoomPlanner(canvas) {
         }
     }
 
+    function handle_walls_mousedown(event) {
+        if (state.walls.mode !== 'start') {
+            alert('bad wall state');
+        }
+        var pos = get_mouse_pos(event);
+        var dot = grid.find_closest_dot(pos);
+        state.walls = {
+            mode: 'drawing',
+            start_dot: dot,
+        }
+    }
+
+    function draw_wall(mouse_pos) {
+        var closest_dot = grid.find_closest_dot(mouse_pos);
+        var dx = Math.abs(closest_dot.x_coord - state.walls.start_dot.x_coord);
+        var dy = Math.abs(closest_dot.y_coord - state.walls.start_dot.y_coord);
+        if (dx < dy) {
+            closest_dot.x_coord = state.walls.start_dot.x_coord;
+        } else {
+            closest_dot.y_coord = state.walls.start_dot.y_coord;
+        }
+        var start_coords = grid.canvas_coords(state.walls.start_dot);
+        var end_coords = grid.canvas_coords(closest_dot);
+
+        ctx.beginPath();
+        ctx.moveTo(start_coords.x, start_coords.y);
+        ctx.lineTo(end_coords.x, end_coords.y);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#00FF00';
+        ctx.stroke();
+    }
+
+    function handle_walls_mouseup(event) {
+        if (state.walls.mode !== 'drawing') {
+            alert('bad wall state');
+        }
+        var pos = get_mouse_pos(event);
+        draw_wall(pos);
+        state.walls.mode = 'start';
+    }
+
+    function handle_mousedown(event) {
+        if (current_mode === 'walls') {
+            handle_walls_mousedown(event);
+        }
+    }
+
+    function handle_mouseup(event) {
+        if (current_mode === 'walls') {
+            handle_walls_mouseup(event);
+        }
+    }
+
 
     this.init = function() {
         build_grid();
         redraw();
-        canvas.addEventListener('click', highlight_nearest_dot);
+        //canvas.addEventListener('click', highlight_nearest_dot);
         buttons.addEventListener('click', handle_mode_change);
-        //canvas.addEventListener('onmousedown', 
+        canvas.addEventListener('mousedown', handle_mousedown);
+        canvas.addEventListener('mouseup', handle_mouseup);
     }
 
 }
