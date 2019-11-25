@@ -118,6 +118,8 @@ function RoomPlanner(canvas) {
 
     const buttons = document.getElementById('buttons');
     const undo_add_wall = document.getElementById('undo-add-wall');
+    const delete_selected_object = document.getElementById('delete-selected-obj');
+    const selected_object_name = document.getElementById('selected-object-name');
     const mode_span = document.getElementById('current-mode');
     const grid_width_span = document.getElementById('grid-width');
     const grid_height_span = document.getElementById('grid-height');
@@ -143,6 +145,7 @@ function RoomPlanner(canvas) {
     var walls = [];
     var objects = [];
     var drawn_objs = [];
+    var selected_object = null;
 
     // stolen from https://stackoverflow.com/a/33063222
     function get_mouse_pos(evt) {
@@ -371,20 +374,44 @@ function RoomPlanner(canvas) {
         return null;
     }
 
+    function select_obj(obj) {
+        selected_object = obj;
+        obj.colour = SELECTED_OBJ_COLOUR;
+        delete_selected_object.classList.remove('hidden');
+        selected_object_name.innerText = obj.name;
+    }
+
+    function clear_selected_object() {
+        if (selected_object === null) {
+            // thats fine, no need to be paranoid about state management here.
+            return;
+        }
+        selected_object.colour = OBJ_COLOUR;
+        selected_object = null;
+        delete_selected_object.classList.add('hidden');
+        redraw();
+    }
+
     function handle_objects_mousedown(event) {
         if (state.objects.mode !== 'start') {
-            alert('bad objects state');
+            alert(`bad objects state ${state.objects.mode}`);
             return;
         }
         var pos = get_mouse_pos(event);
         var selected_obj = find_containing_obj(pos);
-        selected_obj.colour = SELECTED_OBJ_COLOUR;
+        if (selected_obj === null) {
+            state.objects = {
+                mode: 'start',
+            };
+            return;
+        }
         state.objects = {
             mode: 'moving',
             start_mouse_pos: pos,
             original_obj: Object.assign({}, selected_obj),
             obj: selected_obj,
         };
+        select_obj(selected_obj);
     }
 
     function handle_objects_mousemove(event) {
@@ -400,16 +427,13 @@ function RoomPlanner(canvas) {
     }
 
     function handle_objects_mouseup(event) {
-        if (state.objects.mode !== 'moving') {
-            alert('bad objects state');
-            return;
-        }
         state.objects = {
             mode: 'start',
         };
     }
 
     function handle_mousedown(event) {
+        clear_selected_object();
         if (current_mode === 'walls') {
             handle_walls_mousedown(event);
         } else if (current_mode === 'objects') {
@@ -441,6 +465,21 @@ function RoomPlanner(canvas) {
         if (walls.length === 0) {
             undo_add_wall.classList.add('hidden');
         }
+        redraw();
+    }
+
+    function handle_delete_selected_object(event) {
+        if (selected_object === null) {
+            console.log("your state got fucked up");
+            return;
+        }
+        var idx = drawn_objs.indexOf(selected_object);
+        if (idx === -1) {
+            console.log('???');
+            return;
+        }
+        drawn_objs.splice(idx, 1);
+        clear_selected_object();
         redraw();
     }
 
@@ -498,9 +537,6 @@ function RoomPlanner(canvas) {
 
         var buttons = object_inventory_div.getElementsByClassName(
             'create-object');
-        for (var i = 0; i < buttons.length; i++) {
-            buttons[i].disabled = true;
-        }
         add_drawn_obj(obj);
     }
 
@@ -527,6 +563,8 @@ function RoomPlanner(canvas) {
         canvas.addEventListener('mousemove', handle_mousemove);
         canvas.addEventListener('mouseup', handle_mouseup);
         undo_add_wall.addEventListener('click', handle_undo_add_wall);
+        delete_selected_object.addEventListener(
+            'click', handle_delete_selected_object);
         add_object_form.addEventListener('submit', handle_add_object);
         object_inventory_div.addEventListener('click', handle_create_obj);
 
