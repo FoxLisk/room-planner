@@ -6,15 +6,15 @@ function assert(val, msg) {
     }
 }
 
-function Grid(canvas, corner_offset, dot_radius, dot_spacing) {
-    var points = null;
-    var dot_radius = dot_radius;
+function Grid(canvas, _corner_offset, _dot_radius, _dot_spacing) {
+    let points = null;
+    let dot_radius = _dot_radius;
 
     // TODO: context.scale might be a better way of dealing with this
-    var dot_spacing = dot_spacing;
+    let dot_spacing = _dot_spacing;
     // N.B. context.translate seems unlikely to be an improvement for the
     // corner offset, since i want an offset on *each* corner.
-    var corner_offset = corner_offset;
+    let corner_offset = _corner_offset;
     const w = canvas.getAttribute('width');
     const h = canvas.getAttribute('height');
     const xstart = corner_offset + dot_radius;
@@ -24,9 +24,9 @@ function Grid(canvas, corner_offset, dot_radius, dot_spacing) {
 
     function init() {
         points = [];
-        for (var x = xstart; x < xend; x += dot_spacing) {
-            var cur_row = [];
-            for (var y = ystart; y < yend; y += dot_spacing) {
+        for (let x = xstart; x < xend; x += dot_spacing) {
+            let cur_row = [];
+            for (let y = ystart; y < yend; y += dot_spacing) {
                 cur_row.push({
                     x: x,
                     y: y,
@@ -38,7 +38,7 @@ function Grid(canvas, corner_offset, dot_radius, dot_spacing) {
     }
 
     function draw_dot(ctx, x, y) {
-        var point = points[x][y]
+        let point = points[x][y]
         // is doing so many beginPath/fills going to be a performance issue?
         // probably but i will worry about it when i get there, maybe
         ctx.beginPath();
@@ -53,7 +53,7 @@ function Grid(canvas, corner_offset, dot_radius, dot_spacing) {
     }
 
     this.canvas_coords = function(dot) {
-        var point = points[dot.x_coord][dot.y_coord];
+        let point = points[dot.x_coord][dot.y_coord];
         return {
             x: point.x,
             y: point.y,
@@ -63,9 +63,9 @@ function Grid(canvas, corner_offset, dot_radius, dot_spacing) {
     // take x, y as position on canvas, return x, y s.t. points[x][y] is
     // nearest point
     this.find_closest_dot = function(pos) {
-        var closest = points[0];
-        var scaled_x = scale(pos.x);
-        var scaled_y = scale(pos.y);
+        let closest = points[0];
+        let scaled_x = scale(pos.x);
+        let scaled_y = scale(pos.y);
         return {
             x_coord: scaled_x,
             y_coord: scaled_y,
@@ -74,15 +74,15 @@ function Grid(canvas, corner_offset, dot_radius, dot_spacing) {
     }
 
     this.colour_dot = function(dot_coords, colour) {
-        var dot = points[dot_coords.x_coord][dot_coords.y_coord];
+        let dot = points[dot_coords.x_coord][dot_coords.y_coord];
         if (dot.colour !== colour) {
             dot.colour = colour;
         }
     }
 
     this.draw = function(ctx) {
-        for (var i = 0; i < points.length; i++) {
-            for (var j = 0; j < points[i].length; j++) {
+        for (let i = 0; i < points.length; i++) {
+            for (let j = 0; j < points[i].length; j++) {
                 draw_dot(ctx, i, j);
             }
         }
@@ -97,8 +97,8 @@ function Grid(canvas, corner_offset, dot_radius, dot_spacing) {
 
     this.displacement = function(from, to) {
         // distance b/w 2 pixels normalized to grid units
-        var x_disp = scale(to.x) - scale(from.x);
-        var y_disp = scale(to.y) - scale(from.y);
+        let x_disp = scale(to.x) - scale(from.x);
+        let y_disp = scale(to.y) - scale(from.y);
         return {
             x_disp: x_disp,
             y_disp: y_disp,
@@ -112,9 +112,9 @@ function Grid(canvas, corner_offset, dot_radius, dot_spacing) {
     init();
 }
 
-function RoomPlanner(canvas) {
-    var canvas = canvas;
-    var ctx = canvas.getContext('2d');
+function RoomPlanner(_canvas) {
+    let canvas = _canvas;
+    let ctx = canvas.getContext('2d');
 
     const buttons = document.getElementById('buttons');
     const undo_add_wall = document.getElementById('undo-add-wall');
@@ -138,21 +138,21 @@ function RoomPlanner(canvas) {
 
     const CACHE_KEY = 'room-planner';
 
-    var grid = null;
+    let grid = null;
 
-    var current_mode = null;
-    var state = {
+    let current_mode = null;
+    let state = {
     };
 
-    var walls = [];
-    var objects = {};
-    var drawn_objs = [];
-    var selected_object = null;
-    var currently_rehydrating = false;
+    let walls = [];
+    let objects = {};
+    let drawn_objs = [];
+    let selected_object = null;
+    let currently_rehydrating = false;
 
     // stolen from https://stackoverflow.com/a/33063222
     function get_mouse_pos(evt) {
-        var rect = canvas.getBoundingClientRect();
+        let rect = canvas.getBoundingClientRect();
         return {
             x: (evt.clientX - rect.left) / (rect.right - rect.left) * w,
             y: (evt.clientY - rect.top) / (rect.bottom - rect.top) * h,
@@ -169,9 +169,9 @@ function RoomPlanner(canvas) {
     }
 
     function draw_wall(start, end, colour=WALL_COLOUR) {
-        var dx = Math.abs(end.x_coord - start.x_coord);
-        var dy = Math.abs(end.y_coord - start.y_coord);
-        var true_end = {
+        let dx = Math.abs(end.x_coord - start.x_coord);
+        let dy = Math.abs(end.y_coord - start.y_coord);
+        let true_end = {
             x_coord: end.x_coord,
             y_coord: end.y_coord,
         }
@@ -180,8 +180,8 @@ function RoomPlanner(canvas) {
         } else {
             true_end.y_coord = start.y_coord;
         }
-        var start_coords = grid.canvas_coords(start);
-        var end_coords = grid.canvas_coords(true_end);
+        let start_coords = grid.canvas_coords(start);
+        let end_coords = grid.canvas_coords(true_end);
 
         ctx.beginPath();
         ctx.moveTo(start_coords.x, start_coords.y);
@@ -197,30 +197,30 @@ function RoomPlanner(canvas) {
     }
 
     function draw_walls() {
-        for (var i = 0; i < walls.length; i++) {
+        for (let i = 0; i < walls.length; i++) {
             draw_wall(walls[i].start, walls[i].end);
         }
     }
 
     function draw_obj(obj) {
-        var lx = obj.upper_left_x;
-        var uy = obj.upper_left_y;
-        var rx = lx + obj.width;
-        var by = uy + obj.height;
+        let lx = obj.upper_left_x;
+        let uy = obj.upper_left_y;
+        let rx = lx + obj.width;
+        let by = uy + obj.height;
 
-        var ul = {
+        let ul = {
             x_coord: lx,
             y_coord: uy,
         };
-        var ur = {
+        let ur = {
             x_coord: rx,
             y_coord: uy,
         };
-        var bl = {
+        let bl = {
             x_coord: lx,
             y_coord: by,
         };
-        var br = {
+        let br = {
             x_coord: rx,
             y_coord: by,
         };
@@ -228,16 +228,16 @@ function RoomPlanner(canvas) {
         draw_wall(ur, br, obj.colour);
         draw_wall(br, bl, obj.colour);
         draw_wall(bl, ul, obj.colour);
-        var upper_left_canvas = grid.canvas_coords(ul);
-        var bottom_left_canvas = grid.canvas_coords(bl);
-        var name_y = (bottom_left_canvas.y + upper_left_canvas.y) / 2
-        var name_x = upper_left_canvas.x + DOT_RAD
+        let upper_left_canvas = grid.canvas_coords(ul);
+        let bottom_left_canvas = grid.canvas_coords(bl);
+        let name_y = (bottom_left_canvas.y + upper_left_canvas.y) / 2
+        let name_x = upper_left_canvas.x + DOT_RAD
 
         ctx.fillText(obj.name, name_x, name_y, DOT_SPACING * obj.width - 2 * DOT_RAD);
 
         // make dots in the furniture interior less obtrusive
-        for (var x = ul.x_coord + 1; x < ur.x_coord; x++) {
-            for (var y = ul.y_coord + 1; y < bl.y_coord; y++) {
+        for (let x = ul.x_coord + 1; x < ur.x_coord; x++) {
+            for (let y = ul.y_coord + 1; y < bl.y_coord; y++) {
                 grid.colour_dot({
                     x_coord: x,
                     y_coord: y,
@@ -248,8 +248,8 @@ function RoomPlanner(canvas) {
     }
 
     function draw_objs() {
-        for (var i = 0; i < drawn_objs.length; i++) {
-            var obj = drawn_objs[i];
+        for (let i = 0; i < drawn_objs.length; i++) {
+            let obj = drawn_objs[i];
             draw_obj(obj);
         }
     }
@@ -301,8 +301,8 @@ function RoomPlanner(canvas) {
         if (state.walls.mode !== 'start') {
             alert('bad wall state');
         }
-        var pos = get_mouse_pos(event);
-        var dot = grid.find_closest_dot(pos);
+        let pos = get_mouse_pos(event);
+        let dot = grid.find_closest_dot(pos);
         state.walls = {
             mode: 'drawing',
             start_dot: dot,
@@ -314,8 +314,8 @@ function RoomPlanner(canvas) {
             // only wanna do this shit while the mouse is down
             return;
         }
-        var pos = get_mouse_pos(event);
-        var end = grid.find_closest_dot(pos);
+        let pos = get_mouse_pos(event);
+        let end = grid.find_closest_dot(pos);
         redraw();
         draw_wall(state.walls.start_dot, end);
     }
@@ -324,28 +324,27 @@ function RoomPlanner(canvas) {
         if (state.walls.mode !== 'drawing') {
             alert('bad wall state');
         }
-        var pos = get_mouse_pos(event);
-        var end = grid.find_closest_dot(pos);
-        var wall = draw_wall(state.walls.start_dot, end);
+        let pos = get_mouse_pos(event);
+        let end = grid.find_closest_dot(pos);
+        let wall = draw_wall(state.walls.start_dot, end);
         add_wall(wall);
         reinit_wall_state();
     }
 
     function contains(obj, mouse_pos) {
-        var grid_obj = {
+        let grid_obj = {
             x_coord: obj.upper_left_x,
             y_coord: obj.upper_left_y,
         };
-        var upper_left_canvas = grid.canvas_coords(grid_obj);
-        var x_min = upper_left_canvas.x;
-        var y_min = upper_left_canvas.y;
-        var lower_right_canvas = {
+        let upper_left_canvas = grid.canvas_coords(grid_obj);
+        let x_min = upper_left_canvas.x;
+        let y_min = upper_left_canvas.y;
+        let lower_right_canvas = grid.canvas_coords({
             x_coord: grid_obj.x_coord + obj.width,
             y_coord: grid_obj.y_coord + obj.height,
-        };
-        var lower_right_canvas = grid.canvas_coords(lower_right_canvas);
-        var x_max = lower_right_canvas.x;
-        var y_max = lower_right_canvas.y;
+        });
+        let x_max = lower_right_canvas.x;
+        let y_max = lower_right_canvas.y;
         return (
             x_min < mouse_pos.x         &&
                     mouse_pos.x < x_max &&
@@ -361,7 +360,7 @@ function RoomPlanner(canvas) {
         if (drawn_objs.length == 0) {
             return null;
         }
-        for (var i = drawn_objs.length - 1; i >= 0; i--) {
+        for (let i = drawn_objs.length - 1; i >= 0; i--) {
             if (contains(drawn_objs[i], pos)) {
                 return drawn_objs[i];
             }
@@ -396,8 +395,8 @@ function RoomPlanner(canvas) {
             alert(`bad objects state ${state.objects.mode}`);
             return;
         }
-        var pos = get_mouse_pos(event);
-        var selected_obj = find_containing_obj(pos);
+        let pos = get_mouse_pos(event);
+        let selected_obj = find_containing_obj(pos);
         if (selected_obj === null) {
             state.objects = {
                 mode: 'start',
@@ -472,7 +471,7 @@ function RoomPlanner(canvas) {
             console.log("your state got fucked up");
             return;
         }
-        var idx = drawn_objs.indexOf(selected_object);
+        let idx = drawn_objs.indexOf(selected_object);
         if (idx === -1) {
             console.log('???');
             return;
@@ -483,8 +482,8 @@ function RoomPlanner(canvas) {
     }
 
     function add_obj(obj) {
-        var div = document.createElement('div');
-        var contents = `
+        let div = document.createElement('div');
+        let contents = `
         ${obj.name} (${obj.width}x${obj.height})
 <button type="button" class="create-object" data-name="${obj.name}">add</button>`;
         div.innerHTML = contents;
@@ -497,9 +496,9 @@ function RoomPlanner(canvas) {
 
     function handle_add_object(event) {
         event.preventDefault();
-        var width = parseInt(add_object_form.elements.width.value, 10);
-        var height = parseInt(add_object_form.elements.height.value, 10);
-        var name = add_object_form.elements.name.value;
+        let width = parseInt(add_object_form.elements.width.value, 10);
+        let height = parseInt(add_object_form.elements.height.value, 10);
+        let name = add_object_form.elements.name.value;
         if (isNaN(width)) {
             alert('Must enter integer width');
             return;
@@ -520,7 +519,7 @@ function RoomPlanner(canvas) {
     }
 
     function add_drawn_obj(obj, upper_left_x=0, upper_left_y=0) {
-        var ours = Object.assign({}, obj);
+        let ours = Object.assign({}, obj);
         ours.upper_left_x = upper_left_x;
         ours.upper_left_y = upper_left_y;
         ours.colour = OBJ_COLOUR;
@@ -537,7 +536,7 @@ function RoomPlanner(canvas) {
     }
 
     function create_obj(button) {
-        var obj = objects[button.dataset.name];
+        let obj = objects[button.dataset.name];
         if (obj === undefined) {
             alert('bad object');
             return;
@@ -565,7 +564,7 @@ function RoomPlanner(canvas) {
     // this is in-place, which is sorta gross but eh
     function hydrate(serialized) {
         currently_rehydrating = true;
-        var new_state = JSON.parse(serialized);
+        let new_state = JSON.parse(serialized);
         new_state.walls.forEach(e => add_wall(e));
         Object.values(new_state.objects).forEach(v => add_obj(v));
         new_state.drawn_objs.forEach(o =>
@@ -589,7 +588,7 @@ function RoomPlanner(canvas) {
         reinit_objects_state();
         build_grid();
         redraw();
-        var dimensions = grid.dimensions();
+        let dimensions = grid.dimensions();
         grid_width_span.innerText = dimensions.width;
         grid_height_span.innerText = dimensions.height;
 
@@ -620,7 +619,7 @@ function RoomPlanner(canvas) {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
-    var canvas = document.getElementById('planner');
+    let canvas = document.getElementById('planner');
     planner = new RoomPlanner(canvas);
     planner.init();
 });

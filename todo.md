@@ -1,7 +1,8 @@
 things to do:
 
-* save state to local storage
 * delete objects from inventory
+* rotate objects
+* draw object name verticall in very skinny objs
 
 things to think about and probably never do:
 
