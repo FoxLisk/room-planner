@@ -136,6 +136,8 @@ function RoomPlanner(canvas) {
     const OBJ_COLOUR = '#0000FF';
     const SELECTED_OBJ_COLOUR = '#00CCCC';
 
+    const CACHE_KEY = 'room-planner';
+
     var grid = null;
 
     var current_mode = null;
@@ -143,9 +145,10 @@ function RoomPlanner(canvas) {
     };
 
     var walls = [];
-    var objects = [];
+    var objects = {};
     var drawn_objs = [];
     var selected_object = null;
+    var currently_rehydrating = false;
 
     // stolen from https://stackoverflow.com/a/33063222
     function get_mouse_pos(evt) {
@@ -192,7 +195,6 @@ function RoomPlanner(canvas) {
             end: Object.assign({}, true_end),
         };
     }
-
 
     function draw_walls() {
         for (var i = 0; i < walls.length; i++) {
@@ -265,13 +267,6 @@ function RoomPlanner(canvas) {
         draw_walls();
     }
 
-    function highlight_nearest_dot(event) {
-        var pos = get_mouse_pos(event);
-        var dot = grid.find_closest_dot(pos);
-        grid.colour_dot(dot, '#FF0000');
-        redraw();
-    }
-
     function set_mode(mode) {
         mode_span.innerHTML = mode;
         current_mode = mode;
@@ -296,10 +291,10 @@ function RoomPlanner(canvas) {
         }
     }
 
-
     function add_wall(wall) {
         walls.push(wall);
         undo_add_wall.classList.remove('hidden');
+        save_state();
     }
 
     function handle_walls_mousedown(event) {
@@ -423,11 +418,11 @@ function RoomPlanner(canvas) {
             // only wanna do this shit while the mouse is down
             return;
         }
-        var pos = get_mouse_pos(event);
-        var disp = grid.displacement(state.objects.start_mouse_pos, pos);
-        state.objects.obj.upper_left_x = state.objects.original_obj.upper_left_x +  disp.x_disp;
-        state.objects.obj.upper_left_y = state.objects.original_obj.upper_left_y +  disp.y_disp;
-        redraw();
+        let pos = get_mouse_pos(event);
+        let disp = grid.displacement(state.objects.start_mouse_pos, pos);
+        let new_x = state.objects.original_obj.upper_left_x + disp.x_disp;
+        let new_y = state.objects.original_obj.upper_left_y + disp.y_disp;
+        move_obj(state.objects.obj, new_x, new_y);
     }
 
     function handle_objects_mouseup(event) {
@@ -497,6 +492,7 @@ function RoomPlanner(canvas) {
         objects[obj.name] = obj;
         object_inventory_div.appendChild(div);
         object_inventory_div.classList.remove('hidden');
+        save_state();
     }
 
     function handle_add_object(event) {
@@ -523,13 +519,21 @@ function RoomPlanner(canvas) {
         });
     }
 
-    function add_drawn_obj(obj) {
+    function add_drawn_obj(obj, upper_left_x=0, upper_left_y=0) {
         var ours = Object.assign({}, obj);
-        ours.upper_left_x = 0;
-        ours.upper_left_y = 0;
+        ours.upper_left_x = upper_left_x;
+        ours.upper_left_y = upper_left_y;
         ours.colour = OBJ_COLOUR;
         drawn_objs.push(ours);
         redraw();
+        save_state();
+    }
+
+    function move_obj(obj, new_x, new_y) {
+        obj.upper_left_x = new_x;
+        obj.upper_left_y = new_y;
+        redraw();
+        save_state();
     }
 
     function create_obj(button) {
@@ -539,8 +543,6 @@ function RoomPlanner(canvas) {
             return;
         }
 
-        var buttons = object_inventory_div.getElementsByClassName(
-            'create-object');
         add_drawn_obj(obj);
     }
 
@@ -549,7 +551,36 @@ function RoomPlanner(canvas) {
         // object line as it gets created?
         if (event.target.classList.contains('create-object')) {
             create_obj(event.target);
+        }
+    }
 
+    function dehydrate() {
+        return JSON.stringify({
+            walls: walls,
+            objects: objects,
+            drawn_objs: drawn_objs,
+        });
+    }
+
+    // this is in-place, which is sorta gross but eh
+    function hydrate(serialized) {
+        currently_rehydrating = true;
+        var new_state = JSON.parse(serialized);
+        new_state.walls.forEach(e => add_wall(e));
+        Object.values(new_state.objects).forEach(v => add_obj(v));
+        new_state.drawn_objs.forEach(o =>
+            add_drawn_obj({
+                name: o.name,
+                width: o.width,
+                height: o.height,
+            }, o.upper_left_x, o.upper_left_y));
+        redraw();
+        currently_rehydrating = false;
+    }
+
+    function save_state() {
+        if (!currently_rehydrating) {
+            window.localStorage.setItem(CACHE_KEY, dehydrate());
         }
     }
 
@@ -572,11 +603,18 @@ function RoomPlanner(canvas) {
         add_object_form.addEventListener('submit', handle_add_object);
         object_inventory_div.addEventListener('click', handle_create_obj);
 
+        let state = window.localStorage.getItem(CACHE_KEY);
+        if (state !== null) {
+            hydrate(state);
+        }
+
+        /*
         add_obj({
             name:'bed',
             width:4,
             height:3,
         });
+        */
     }
 
 }
