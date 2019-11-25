@@ -73,7 +73,6 @@ function Grid(canvas, corner_offset, dot_radius, dot_spacing) {
         var dot = points[dot_coords.x_coord][dot_coords.y_coord];
         if (dot.colour !== colour) {
             dot.colour = colour;
-            dot.dirty = true;
         }
     }
 
@@ -179,34 +178,55 @@ function RoomPlanner(canvas) {
         }
     }
 
+    function draw_obj(obj) {
+        var lx = obj.upper_left_x;
+        var uy = obj.upper_left_y;
+        var rx = lx + obj.width;
+        var by = uy + obj.height;
+
+        var ul = {
+            x_coord: lx,
+            y_coord: uy,
+        };
+        var ur = {
+            x_coord: rx,
+            y_coord: uy,
+        };
+        var bl = {
+            x_coord: lx,
+            y_coord: by,
+        };
+        var br = {
+            x_coord: rx,
+            y_coord: by,
+        };
+        draw_wall(ul, ur, OBJ_COLOUR);
+        draw_wall(ur, br, OBJ_COLOUR);
+        draw_wall(br, bl, OBJ_COLOUR);
+        draw_wall(bl, ul, OBJ_COLOUR);
+        var upper_left_canvas = grid.canvas_coords(ul);
+        var bottom_left_canvas = grid.canvas_coords(bl);
+        var name_y = (bottom_left_canvas.y + upper_left_canvas.y) / 2
+        var name_x = upper_left_canvas.x + DOT_RAD
+
+        ctx.fillText(obj.name, name_x, name_y, DOT_SPACING * obj.width - 2 * DOT_RAD);
+
+        // make dots in the furniture interior less obtrusive
+        for (var x = ul.x_coord + 1; x < ur.x_coord; x++) {
+            for (var y = ul.y_coord + 1; y < bl.y_coord; y++) {
+                grid.colour_dot({
+                    x_coord: x,
+                    y_coord: y,
+                }, '#dddddd');
+
+            }
+        }
+    }
+
     function draw_objs() {
         for (var i = 0; i < drawn_objs.length; i++) {
             var obj = drawn_objs[i];
-            var lx = obj.upper_left_x;
-            var uy = obj.upper_left_y;
-            var rx = lx + obj.width;
-            var by = uy + obj.height;
-
-            var ul = {
-                x_coord: lx,
-                y_coord: uy,
-            };
-            var ur = {
-                x_coord: rx,
-                y_coord: uy,
-            };
-            var bl = {
-                x_coord: lx,
-                y_coord: by,
-            };
-            var br = {
-                x_coord: rx,
-                y_coord: by,
-            };
-            draw_wall(ul, ur, OBJ_COLOUR);
-            draw_wall(ur, br, OBJ_COLOUR);
-            draw_wall(br, bl, OBJ_COLOUR);
-            draw_wall(bl, ul, OBJ_COLOUR);
+            draw_obj(obj);
         }
     }
 
@@ -214,9 +234,9 @@ function RoomPlanner(canvas) {
     // feels a little messy to have rooms/objs be part of this object
     function redraw() {
         ctx.clearRect(0, 0, w, h);
+        draw_objs();
         grid.draw(ctx);
         draw_walls();
-        draw_objs();
     }
 
     function highlight_nearest_dot(event) {
