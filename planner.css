@@ -6,6 +6,10 @@
     display: flex;
 }
 
+.room-object {
+    border-bottom: 1px solid black;
+}
+
 #planner {
     border: 1px solid black;
     background: pink;

@@ -30,7 +30,7 @@ function Grid(canvas, corner_offset, dot_radius, dot_spacing) {
                 cur_row.push({
                     x: x,
                     y: y,
-                    color: '#000000',
+                    colour: '#000000',
                 });
             }
             points.push(cur_row);
@@ -44,7 +44,7 @@ function Grid(canvas, corner_offset, dot_radius, dot_spacing) {
         ctx.beginPath();
         ctx.moveTo(point.x, point.y);
         ctx.arc(point.x, point.y, dot_radius, 0, 2*Math.PI);
-        ctx.fillStyle = point.color
+        ctx.fillStyle = point.colour
         ctx.fill();
     }
 
@@ -69,10 +69,10 @@ function Grid(canvas, corner_offset, dot_radius, dot_spacing) {
 
     }
 
-    this.color_dot = function(dot_coords, color) {
+    this.colour_dot = function(dot_coords, colour) {
         var dot = points[dot_coords.x_coord][dot_coords.y_coord];
-        if (dot.color !== color) {
-            dot.color = color;
+        if (dot.colour !== colour) {
+            dot.colour = colour;
             dot.dirty = true;
         }
     }
@@ -113,6 +113,8 @@ function RoomPlanner(canvas) {
     const h = canvas.getAttribute('height');
     const DOT_RAD = 2;
     const DOT_SPACING = 16;
+    const WALL_COLOUR = '#00FF00';
+    const OBJ_COLOUR = '#0000FF';
 
     var grid = null;
 
@@ -122,6 +124,7 @@ function RoomPlanner(canvas) {
 
     var walls = [];
     var objects = [];
+    var drawn_objs = [];
 
     // stolen from https://stackoverflow.com/a/33063222
     function get_mouse_pos(evt) {
@@ -141,38 +144,7 @@ function RoomPlanner(canvas) {
         grid = new Grid(canvas, CORNER_OFFSET, DOT_RAD, DOT_SPACING);
     }
 
-    function draw_walls() {
-        for (var i = 0; i < walls.length; i++) {
-            console.log('drawing ', walls[i]);
-            draw_wall(walls[i].start, walls[i].end);
-        }
-    }
-
-    function redraw() {
-        ctx.clearRect(0, 0, w, h);
-        grid.draw(ctx);
-        draw_walls();
-    }
-
-    function highlight_nearest_dot(event) {
-        var pos = get_mouse_pos(event);
-        var dot = grid.find_closest_dot(pos);
-        grid.color_dot(dot, '#FF0000');
-        redraw();
-    }
-
-    function set_mode(mode) {
-        mode_span.innerHTML = mode;
-        current_mode = mode;
-    }
-
-    function handle_mode_change(event) {
-        if (event.target.dataset.mode) {
-            set_mode(event.target.dataset.mode);
-        }
-    }
-
-    function draw_wall(start, end) {
+    function draw_wall(start, end, colour=WALL_COLOUR) {
         var dx = Math.abs(end.x_coord - start.x_coord);
         var dy = Math.abs(end.y_coord - start.y_coord);
         var true_end = {
@@ -191,14 +163,78 @@ function RoomPlanner(canvas) {
         ctx.moveTo(start_coords.x, start_coords.y);
         ctx.lineTo(end_coords.x, end_coords.y);
         ctx.lineWidth = 3;
-        ctx.strokeStyle = '#00FF00';
+        ctx.strokeStyle = colour;
         ctx.stroke();
 
         return {
             start: Object.assign({}, start),
             end: Object.assign({}, true_end),
         };
+    }
 
+
+    function draw_walls() {
+        for (var i = 0; i < walls.length; i++) {
+            draw_wall(walls[i].start, walls[i].end);
+        }
+    }
+
+    function draw_objs() {
+        for (var i = 0; i < drawn_objs.length; i++) {
+            var obj = drawn_objs[i];
+            var lx = obj.upper_left_x;
+            var uy = obj.upper_left_y;
+            var rx = lx + obj.width;
+            var by = uy + obj.height;
+
+            var ul = {
+                x_coord: lx,
+                y_coord: uy,
+            };
+            var ur = {
+                x_coord: rx,
+                y_coord: uy,
+            };
+            var bl = {
+                x_coord: lx,
+                y_coord: by,
+            };
+            var br = {
+                x_coord: rx,
+                y_coord: by,
+            };
+            draw_wall(ul, ur, OBJ_COLOUR);
+            draw_wall(ur, br, OBJ_COLOUR);
+            draw_wall(br, bl, OBJ_COLOUR);
+            draw_wall(bl, ul, OBJ_COLOUR);
+        }
+    }
+
+    // should this be part of the grid's brain? or maybe some third object?
+    // feels a little messy to have rooms/objs be part of this object
+    function redraw() {
+        ctx.clearRect(0, 0, w, h);
+        grid.draw(ctx);
+        draw_walls();
+        draw_objs();
+    }
+
+    function highlight_nearest_dot(event) {
+        var pos = get_mouse_pos(event);
+        var dot = grid.find_closest_dot(pos);
+        grid.colour_dot(dot, '#FF0000');
+        redraw();
+    }
+
+    function set_mode(mode) {
+        mode_span.innerHTML = mode;
+        current_mode = mode;
+    }
+
+    function handle_mode_change(event) {
+        if (event.target.dataset.mode) {
+            set_mode(event.target.dataset.mode);
+        }
     }
 
     function reinit_wall_state() {
@@ -230,12 +266,10 @@ function RoomPlanner(canvas) {
             // only wanna do this shit while the mouse is down
             return;
         }
-        console.log('mousemove');
         var pos = get_mouse_pos(event);
         var end = grid.find_closest_dot(pos);
         redraw();
         draw_wall(state.walls.start_dot, end);
-        console.log('end mousemove');
     }
 
     function handle_walls_mouseup(event) {
@@ -280,7 +314,12 @@ function RoomPlanner(canvas) {
 
     function add_obj(obj) {
         var div = document.createElement('div');
-        div.innerHTML = String(obj);
+        var contents = `
+        ${obj.name} (${obj.width}x${obj.height})
+<button type="button" class="create-object" data-name="${obj.name}">add</button>`;
+        div.innerHTML = contents;
+        div.classList.add('room-object');
+        objects[obj.name] = obj;
         object_inventory_div.appendChild(div);
         object_inventory_div.classList.remove('hidden');
     }
@@ -309,6 +348,38 @@ function RoomPlanner(canvas) {
         });
     }
 
+    function add_drawn_obj(obj) {
+        var ours = Object.assign({}, obj);
+        ours.upper_left_x = 0;
+        ours.upper_left_y = 0;
+        drawn_objs.push(ours);
+        redraw();
+    }
+
+    function create_obj(button) {
+        var obj = objects[button.dataset.name];
+        if (obj === undefined) {
+            alert('bad object');
+            return;
+        }
+
+        var buttons = object_inventory_div.getElementsByClassName(
+            'create-object');
+        for (var i = 0; i < buttons.length; i++) {
+            buttons[i].disabled = true;
+        }
+        add_drawn_obj(obj);
+    }
+
+    function handle_create_obj(event) {
+        // would it be better to add a specific closure event listener to each
+        // object line as it gets created?
+        if (event.target.classList.contains('create-object')) {
+            create_obj(event.target);
+
+        }
+    }
+
     this.init = function() {
         reinit_wall_state();
         build_grid();
@@ -323,6 +394,13 @@ function RoomPlanner(canvas) {
         canvas.addEventListener('mouseup', handle_mouseup);
         undo_add_wall.addEventListener('click', handle_undo_add_wall);
         add_object_form.addEventListener('submit', handle_add_object);
+        object_inventory_div.addEventListener('click', handle_create_obj);
+
+        add_obj({
+            name:'bed',
+            width:4,
+            height:3,
+        });
     }
 
 }
