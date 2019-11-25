@@ -48,6 +48,10 @@ function Grid(canvas, corner_offset, dot_radius, dot_spacing) {
         ctx.fill();
     }
 
+    function scale(canvas_val) {
+        return Math.round((canvas_val - corner_offset) / dot_spacing);
+    }
+
     this.canvas_coords = function(dot) {
         var point = points[dot.x_coord][dot.y_coord];
         return {
@@ -60,8 +64,8 @@ function Grid(canvas, corner_offset, dot_radius, dot_spacing) {
     // nearest point
     this.find_closest_dot = function(pos) {
         var closest = points[0];
-        var scaled_x = Math.round((pos.x - corner_offset) / dot_spacing);
-        var scaled_y = Math.round((pos.y - corner_offset) / dot_spacing);
+        var scaled_x = scale(pos.x);
+        var scaled_y = scale(pos.y);
         return {
             x_coord: scaled_x,
             y_coord: scaled_y,
@@ -89,6 +93,19 @@ function Grid(canvas, corner_offset, dot_radius, dot_spacing) {
             width: points.length,
             height: points[0].length,
         }
+    }
+
+    this.displacement = function(from, to) {
+        var x_disp = scale(to.x) - scale(from.x);
+        var y_disp = scale(to.y) - scale(from.y);
+        return {
+            x_disp: x_disp,
+            y_disp: y_disp,
+        }
+    }
+
+    this.reinit = function() {
+        init();
     }
 
     init();
@@ -234,6 +251,10 @@ function RoomPlanner(canvas) {
     // feels a little messy to have rooms/objs be part of this object
     function redraw() {
         ctx.clearRect(0, 0, w, h);
+        grid.reinit();
+        // note that this ordering is important to make things look nice, but
+        // hella fragile and someone who actually understands graphics and how
+        // to order these kinda things would presumably look on in horror.
         draw_objs();
         grid.draw(ctx);
         draw_walls();
@@ -263,6 +284,13 @@ function RoomPlanner(canvas) {
             start_dot: null,
         }
     }
+
+    function reinit_objects_state() {
+        state.objects = {
+            mode: 'start',
+        }
+    }
+
 
     function add_wall(wall) {
         walls.push(wall);
@@ -303,21 +331,69 @@ function RoomPlanner(canvas) {
         reinit_wall_state();
     }
 
+    function find_containing_obj(pos) {
+        // TODO
+        return drawn_objs[0];
+    }
+
+    function handle_objects_mousedown(event) {
+        if (state.objects.mode !== 'start') {
+            alert('bad objects state');
+            return;
+        }
+        var pos = get_mouse_pos(event);
+        var selected_obj = find_containing_obj(pos);
+        state.objects = {
+            mode: 'moving',
+            start_mouse_pos: pos,
+            original_obj: Object.assign({}, selected_obj),
+            obj: selected_obj,
+        };
+    }
+
+    function handle_objects_mousemove(event) {
+        if (state.objects.mode !== 'moving') {
+            // only wanna do this shit while the mouse is down
+            return;
+        }
+        var pos = get_mouse_pos(event);
+        var disp = grid.displacement(state.objects.start_mouse_pos, pos);
+        state.objects.obj.upper_left_x = state.objects.original_obj.upper_left_x +  disp.x_disp;
+        state.objects.obj.upper_left_y = state.objects.original_obj.upper_left_y +  disp.y_disp;
+        redraw();
+    }
+
+    function handle_objects_mouseup(event) {
+        if (state.objects.mode !== 'moving') {
+            alert('bad objects state');
+            return;
+        }
+        state.objects = {
+            mode: 'start',
+        };
+    }
+
     function handle_mousedown(event) {
         if (current_mode === 'walls') {
             handle_walls_mousedown(event);
+        } else if (current_mode === 'objects') {
+            handle_objects_mousedown(event);
         }
     }
 
     function handle_mousemove(event) {
         if (current_mode === 'walls') {
             handle_walls_mousemove(event);
+        } else if (current_mode === 'objects') {
+            handle_objects_mousemove(event);
         }
     }
 
     function handle_mouseup(event) {
         if (current_mode === 'walls') {
             handle_walls_mouseup(event);
+        } else if (current_mode === 'objects') {
+            handle_objects_mouseup(event);
         }
     }
 
@@ -402,6 +478,7 @@ function RoomPlanner(canvas) {
 
     this.init = function() {
         reinit_wall_state();
+        reinit_objects_state();
         build_grid();
         redraw();
         var dimensions = grid.dimensions();
