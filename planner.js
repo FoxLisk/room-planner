@@ -96,6 +96,7 @@ function Grid(canvas, corner_offset, dot_radius, dot_spacing) {
     }
 
     this.displacement = function(from, to) {
+        // distance b/w 2 pixels normalized to grid units
         var x_disp = scale(to.x) - scale(from.x);
         var y_disp = scale(to.y) - scale(from.y);
         return {
@@ -131,6 +132,7 @@ function RoomPlanner(canvas) {
     const DOT_SPACING = 16;
     const WALL_COLOUR = '#00FF00';
     const OBJ_COLOUR = '#0000FF';
+    const SELECTED_OBJ_COLOUR = '#00CCCC';
 
     var grid = null;
 
@@ -217,10 +219,10 @@ function RoomPlanner(canvas) {
             x_coord: rx,
             y_coord: by,
         };
-        draw_wall(ul, ur, OBJ_COLOUR);
-        draw_wall(ur, br, OBJ_COLOUR);
-        draw_wall(br, bl, OBJ_COLOUR);
-        draw_wall(bl, ul, OBJ_COLOUR);
+        draw_wall(ul, ur, obj.colour);
+        draw_wall(ur, br, obj.colour);
+        draw_wall(br, bl, obj.colour);
+        draw_wall(bl, ul, obj.colour);
         var upper_left_canvas = grid.canvas_coords(ul);
         var bottom_left_canvas = grid.canvas_coords(bl);
         var name_y = (bottom_left_canvas.y + upper_left_canvas.y) / 2
@@ -331,9 +333,42 @@ function RoomPlanner(canvas) {
         reinit_wall_state();
     }
 
+    function contains(obj, mouse_pos) {
+        var grid_obj = {
+            x_coord: obj.upper_left_x,
+            y_coord: obj.upper_left_y,
+        };
+        var upper_left_canvas = grid.canvas_coords(grid_obj);
+        var x_min = upper_left_canvas.x;
+        var y_min = upper_left_canvas.y;
+        var lower_right_canvas = {
+            x_coord: grid_obj.x_coord + obj.width,
+            y_coord: grid_obj.y_coord + obj.height,
+        };
+        var lower_right_canvas = grid.canvas_coords(lower_right_canvas);
+        var x_max = lower_right_canvas.x;
+        var y_max = lower_right_canvas.y;
+        return (
+            x_min < mouse_pos.x         &&
+                    mouse_pos.x < x_max &&
+            y_min < mouse_pos.y         &&
+                    mouse_pos.y < y_max
+        );
+    }
+
     function find_containing_obj(pos) {
-        // TODO
-        return drawn_objs[0];
+        // returns the reference to the drawn object that contains the given
+        // point, if any; otherwise null. if multiple objects contain the given
+        // point, the one that was added to the canvas most recently wins.
+        if (drawn_objs.length == 0) {
+            return null;
+        }
+        for (var i = drawn_objs.length - 1; i >= 0; i--) {
+            if (contains(drawn_objs[i], pos)) {
+                return drawn_objs[i];
+            }
+        }
+        return null;
     }
 
     function handle_objects_mousedown(event) {
@@ -343,6 +378,7 @@ function RoomPlanner(canvas) {
         }
         var pos = get_mouse_pos(event);
         var selected_obj = find_containing_obj(pos);
+        selected_obj.colour = SELECTED_OBJ_COLOUR;
         state.objects = {
             mode: 'moving',
             start_mouse_pos: pos,
@@ -448,6 +484,7 @@ function RoomPlanner(canvas) {
         var ours = Object.assign({}, obj);
         ours.upper_left_x = 0;
         ours.upper_left_y = 0;
+        ours.colour = OBJ_COLOUR;
         drawn_objs.push(ours);
         redraw();
     }
