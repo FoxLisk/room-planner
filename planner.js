@@ -379,6 +379,7 @@ function RoomPlanner(canvas) {
         obj.colour = SELECTED_OBJ_COLOUR;
         delete_selected_object.classList.remove('hidden');
         selected_object_name.innerText = obj.name;
+        redraw();
     }
 
     function clear_selected_object() {
@@ -389,6 +390,9 @@ function RoomPlanner(canvas) {
         selected_object.colour = OBJ_COLOUR;
         selected_object = null;
         delete_selected_object.classList.add('hidden');
+        // note that this is called immediately before another redraw in some
+        // cases, which is pretty dumb, but i dont see any performance
+        // implication so w/e
         redraw();
     }
 
