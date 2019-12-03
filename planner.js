@@ -6,6 +6,17 @@ function assert(val, msg) {
     }
 }
 
+function snap(num, min, max) {
+    if (num < min) {
+        return min;
+    } else if (num > max) {
+        return max;
+    } else {
+        return num;
+    }
+}
+
+
 function Grid(canvas, _corner_offset, _dot_radius, _dot_spacing) {
     let points = null;
     let dot_radius = _dot_radius;
@@ -63,9 +74,10 @@ function Grid(canvas, _corner_offset, _dot_radius, _dot_spacing) {
     // take x, y as position on canvas, return x, y s.t. points[x][y] is
     // nearest point
     this.find_closest_dot = function(pos) {
-        let closest = points[0];
-        let scaled_x = scale(pos.x);
-        let scaled_y = scale(pos.y);
+        let dimensions = this.dimensions();
+        let scaled_x = snap(scale(pos.x), 0, dimensions.width - 1);
+        let scaled_y = snap(scale(pos.y), 0, dimensions.height - 1);
+
         return {
             x_coord: scaled_x,
             y_coord: scaled_y,
@@ -276,6 +288,8 @@ function RoomPlanner(_canvas) {
 
     function set_mode(mode) {
         mode_span.innerHTML = mode;
+        reinit_objects_state();
+        reinit_wall_state();
         current_mode = mode;
     }
 
@@ -306,7 +320,8 @@ function RoomPlanner(_canvas) {
 
     function handle_walls_mousedown(event) {
         if (state.walls.mode !== 'start') {
-            alert('bad wall state');
+            // mouse moved off canvas and is now back on.
+            return;
         }
         let pos = get_mouse_pos(event);
         let dot = grid.find_closest_dot(pos);
@@ -323,13 +338,18 @@ function RoomPlanner(_canvas) {
         }
         let pos = get_mouse_pos(event);
         let end = grid.find_closest_dot(pos);
+        if (end === null) {
+            // mouse has gone off grid
+        }
         redraw();
         draw_wall(state.walls.start_dot, end);
     }
 
     function handle_walls_mouseup(event) {
         if (state.walls.mode !== 'drawing') {
-            alert('bad wall state');
+            // this is fine; a user can click outside of the canvas and move
+            // the mouse in and let go, which is not an error condition
+            return;
         }
         let pos = get_mouse_pos(event);
         let end = grid.find_closest_dot(pos);
@@ -401,15 +421,13 @@ function RoomPlanner(_canvas) {
 
     function handle_objects_mousedown(event) {
         if (state.objects.mode !== 'start') {
-            alert(`bad objects state ${state.objects.mode}`);
+            // mouse moved off and back on
             return;
         }
         let pos = get_mouse_pos(event);
         let selected_obj = find_containing_obj(pos);
         if (selected_obj === null) {
-            state.objects = {
-                mode: 'start',
-            };
+             reinit_objects_state();
             return;
         }
         state.objects = {
@@ -428,15 +446,21 @@ function RoomPlanner(_canvas) {
         }
         let pos = get_mouse_pos(event);
         let disp = grid.displacement(state.objects.start_mouse_pos, pos);
-        let new_x = state.objects.original_obj.upper_left_x + disp.x_disp;
-        let new_y = state.objects.original_obj.upper_left_y + disp.y_disp;
+        let dimensions = grid.dimensions();
+        let max_x = dimensions.width - state.objects.obj.width - 1;
+        let max_y = dimensions.height - state.objects.obj.height - 1;
+        console.log(max_x, max_y);
+        let new_x = snap(
+            state.objects.original_obj.upper_left_x + disp.x_disp,
+            0, max_x);
+        let new_y = snap(
+            state.objects.original_obj.upper_left_y + disp.y_disp,
+            0, max_y);
         move_obj(state.objects.obj, new_x, new_y);
     }
 
     function handle_objects_mouseup(event) {
-        state.objects = {
-            mode: 'start',
-        };
+        reinit_objects_state();
     }
 
     function handle_mousedown(event) {
@@ -758,14 +782,6 @@ function RoomPlanner(_canvas) {
         if (state !== null) {
             hydrate(state);
         }
-
-        /*
-        add_obj({
-            name:'bed',
-            width:4,
-            height:3,
-        });
-        */
     }
 
 }
