@@ -10,9 +10,16 @@
     border-bottom: 1px solid black;
 }
 
+#configuration-box {
+    margin-left: 10px;
+    padding: 2px;
+    border: 1px solid black;
+}
+
 #planner {
     border: 1px solid black;
     display: block;
+    margin-top: 10px;
     margin-right: 10px;
 }
 

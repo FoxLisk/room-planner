@@ -145,11 +145,11 @@ function RoomPlanner(_canvas) {
     const stored_configurations_div = document.getElementById('stored-configurations');
 
 
-    const CORNER_OFFSET = 10;
+    const CORNER_OFFSET = 8.5;
     const w = canvas.getAttribute('width');
     const h = canvas.getAttribute('height');
-    const DOT_RAD = 2;
-    const DOT_SPACING = 16;
+    const DOT_RAD = 1.5;
+    const DOT_SPACING = 12;
     const WALL_COLOUR = '#00FF00';
     const OBJ_COLOUR = '#0000FF';
     const SELECTED_OBJ_COLOUR = '#00CCCC';
