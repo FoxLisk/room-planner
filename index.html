@@ -12,14 +12,32 @@
                 <button type="button" data-mode="objects">Move Objects</button>
             </div>
         </div>
+        <div>
+            <button type="button"
+                    id="reset-everything">
+                Reset everything
+            </button>
+            <button type="button"
+                    id="reset-objects">
+                Reset objects
+            </button>
+        </div>
         <div id="wall_controls">
-            <button type="button" id="undo-add-wall" class="hidden">Undo add wall</button>
+            <button type="button"
+                    id="undo-add-wall"
+                    class="hidden">Undo add wall</button>
         </div>
         <div id="object_controls">
             <button type="button"
                     id="delete-selected-obj"
                     class="hidden">
                 Delete selected object (<span id="selected-object-name"></span>)
+            </button>
+            <button type="button"
+                    id="rotate-selected-obj"
+                    class="hidden">
+                Rotate selected object (
+                <span id="selected-object-name"></span>)
             </button>
         </div>
         <div class="container">

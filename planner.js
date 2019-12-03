@@ -119,12 +119,15 @@ function RoomPlanner(_canvas) {
     const buttons = document.getElementById('buttons');
     const undo_add_wall = document.getElementById('undo-add-wall');
     const delete_selected_object = document.getElementById('delete-selected-obj');
+    const rotate_selected_object = document.getElementById('rotate-selected-obj');
     const selected_object_name = document.getElementById('selected-object-name');
     const mode_span = document.getElementById('current-mode');
     const grid_width_span = document.getElementById('grid-width');
     const grid_height_span = document.getElementById('grid-height');
     const add_object_form = document.getElementById('add-object');
     const object_inventory_div = document.getElementById('object-inventory');
+    const reset_button = document.getElementById('reset-everything');
+    const reset_objects_button = document.getElementById('reset-objects');
 
 
     const CORNER_OFFSET = 10;
@@ -372,6 +375,7 @@ function RoomPlanner(_canvas) {
         selected_object = obj;
         obj.colour = SELECTED_OBJ_COLOUR;
         delete_selected_object.classList.remove('hidden');
+        rotate_selected_object.classList.remove('hidden');
         selected_object_name.innerText = obj.name;
         redraw();
     }
@@ -384,6 +388,7 @@ function RoomPlanner(_canvas) {
         selected_object.colour = OBJ_COLOUR;
         selected_object = null;
         delete_selected_object.classList.add('hidden');
+        rotate_selected_object.classList.add('hidden');
         // note that this is called immediately before another redraw in some
         // cases, which is pretty dumb, but i dont see any performance
         // implication so w/e
@@ -479,6 +484,19 @@ function RoomPlanner(_canvas) {
         drawn_objs.splice(idx, 1);
         clear_selected_object();
         redraw();
+        save_state();
+    }
+
+    function handle_rotate_selected_object(event) {
+        if (selected_object === null) {
+            console.log("your state got fucked up");
+            return;
+        }
+        let h = selected_object.height;
+        selected_object.height = selected_object.width;
+        selected_object.width = h;
+        redraw();
+        save_state();
     }
 
     function add_obj(obj) {
@@ -524,6 +542,7 @@ function RoomPlanner(_canvas) {
         ours.upper_left_y = upper_left_y;
         ours.colour = OBJ_COLOUR;
         drawn_objs.push(ours);
+        clear_selected_object();
         redraw();
         save_state();
     }
@@ -583,6 +602,41 @@ function RoomPlanner(_canvas) {
         }
     }
 
+    function reset_walls() {
+        walls = [];
+        reinit_wall_state();
+        reinit_objects_state();
+
+    }
+
+    function reset_drawn_objects() {
+        drawn_objs = [];
+        redraw();
+    }
+
+    function reset_objects() {
+        objects = [];
+        selected_object = null;
+    }
+
+    function reset() {
+        reset_walls();
+        reset_drawn_objects();
+        reset_objects();
+        currently_rehydrating = false;
+        undo_add_wall.classList.add('hidden');
+        redraw();
+        save_state();
+    }
+
+    function handle_reset(event) {
+        reset();
+    }
+
+    function handle_reset_objects(event) {
+        reset_drawn_objects();
+    }
+
     this.init = function() {
         reinit_wall_state();
         reinit_objects_state();
@@ -599,8 +653,12 @@ function RoomPlanner(_canvas) {
         undo_add_wall.addEventListener('click', handle_undo_add_wall);
         delete_selected_object.addEventListener(
             'click', handle_delete_selected_object);
+        rotate_selected_object.addEventListener(
+            'click', handle_rotate_selected_object);
         add_object_form.addEventListener('submit', handle_add_object);
         object_inventory_div.addEventListener('click', handle_create_obj);
+        reset_button.addEventListener('click', handle_reset);
+        reset_objects_button.addEventListener('click', handle_reset_objects);
 
         let state = window.localStorage.getItem(CACHE_KEY);
         if (state !== null) {
