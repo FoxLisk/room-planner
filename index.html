@@ -44,7 +44,7 @@
                     </button>
                 </div>
             </div>
-            <div id="configuration-box">
+            <div id="configuration-box" class="box">
                 <form id="store-configuration">
                     <label for="name">Name</label>
                     <input type="text" name="name"></input>
@@ -53,30 +53,30 @@
                 <div id="stored-configurations">
                 </div>
             </div>
+            <div class="container box">
+                <div>
+                    <h3>Add new object</h3>
+                    <form id="add-object">
+                        <div>Units are the spacing between grid dots; the grid is
+                            <span id="grid-width"></span> by
+                            <span id="grid-height"></span>
+                        </div>
+                        <label for="width">Width</label>
+                        <input type="number" name="width"></input>
+                        <label for="height">Height</label>
+                        <input type="number" name="height"></input>
+                        <label for="name">Name</label>
+                        <input type="text" name="name"></input>
+                        <button type="submit" name="submit">Submit</button>
+                    </form>
+                </div>
+                <div id="object-inventory" class="hidden">
+                    <h3>Defined objects</h3>
+                </div>
+            </div>
         </div>
         <div>
             <canvas id="planner" height="900" width="1100"></canvas>
-        </div>
-        <div class="container">
-            <div>
-                <h3>Add new object</h3>
-                <form id="add-object">
-                    <div>Units are the spacing between grid dots; the grid is
-                        <span id="grid-width"></span> by
-                        <span id="grid-height"></span>
-                    </div>
-                    <label for="width">Width</label>
-                    <input type="number" name="width"></input>
-                    <label for="height">Height</label>
-                    <input type="number" name="height"></input>
-                    <label for="name">Name</label>
-                    <input type="text" name="name"></input>
-                    <button type="submit" name="submit">Submit</button>
-                </form>
-            </div>
-            <div id="object-inventory" class="hidden">
-                <h3>Defined objects</h3>
-            </div>
         </div>
     </body>
 </html>
