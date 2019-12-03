@@ -129,6 +129,9 @@ function RoomPlanner(_canvas) {
     const reset_button = document.getElementById('reset-everything');
     const reset_objects_button = document.getElementById('reset-objects');
 
+    const store_configuration_form = document.getElementById('store-configuration');
+    const stored_configurations_div = document.getElementById('stored-configurations');
+
 
     const CORNER_OFFSET = 10;
     const w = canvas.getAttribute('width');
@@ -152,6 +155,7 @@ function RoomPlanner(_canvas) {
     let drawn_objs = [];
     let selected_object = null;
     let currently_rehydrating = false;
+    let stored_configurations = {};
 
     // stolen from https://stackoverflow.com/a/33063222
     function get_mouse_pos(evt) {
@@ -577,23 +581,30 @@ function RoomPlanner(_canvas) {
             walls: walls,
             objects: objects,
             drawn_objs: drawn_objs,
+            stored_configurations: stored_configurations,
         });
     }
 
     // this is in-place, which is sorta gross but eh
     function hydrate(serialized) {
         currently_rehydrating = true;
-        let new_state = JSON.parse(serialized);
-        new_state.walls.forEach(e => add_wall(e));
-        Object.values(new_state.objects).forEach(v => add_obj(v));
-        new_state.drawn_objs.forEach(o =>
-            add_drawn_obj({
-                name: o.name,
-                width: o.width,
-                height: o.height,
-            }, o.upper_left_x, o.upper_left_y));
-        redraw();
-        currently_rehydrating = false;
+        try {
+            let new_state = JSON.parse(serialized);
+            new_state.walls.forEach(e => add_wall(e));
+            Object.values(new_state.objects).forEach(v => add_obj(v));
+            new_state.drawn_objs.forEach(o =>
+                add_drawn_obj({
+                    name: o.name,
+                    width: o.width,
+                    height: o.height,
+                }, o.upper_left_x, o.upper_left_y));
+            Object.entries(new_state.stored_configurations).forEach(
+                 entry => _store_configuration(entry[0], entry[1])
+            );
+            redraw();
+        } finally {
+            currently_rehydrating = false;
+        }
     }
 
     function save_state() {
@@ -617,12 +628,19 @@ function RoomPlanner(_canvas) {
     function reset_objects() {
         objects = [];
         selected_object = null;
+        object_inventory_div.innerHTML = '';
+    }
+
+    function reset_configurations() {
+        stored_configurations = [];
+        stored_configurations_div.innerHTML = '';
     }
 
     function reset() {
         reset_walls();
         reset_drawn_objects();
         reset_objects();
+        reset_configurations();
         currently_rehydrating = false;
         undo_add_wall.classList.add('hidden');
         redraw();
@@ -635,6 +653,78 @@ function RoomPlanner(_canvas) {
 
     function handle_reset_objects(event) {
         reset_drawn_objects();
+    }
+
+    function _store_configuration(name, configuration) {
+        let is_new = !stored_configurations.hasOwnProperty(name);
+        stored_configurations[name] = configuration;
+        if (is_new) {
+            let div = document.createElement('div');
+            let content = `
+                <span>${name}</span>
+                <button type="button" class="replace" data-name=${name}>
+                    Replace existing configuration
+                </button>
+                <button type="button" class="remove" data-name=${name}>
+                    Remove
+                </button>
+            `;
+            div.innerHTML = content;
+            div.classList.add('configuration');
+            stored_configurations_div.appendChild(div);
+            stored_configurations_div.classList.remove('hidden');
+        }
+        save_state();
+    }
+
+    function store_configuration(name) {
+        let current_configuration = drawn_objs.map(
+            function(o) {
+                let new_o = Object.assign({}, o);
+                new_o.colour = OBJ_COLOUR;
+                return new_o;
+            }
+        );
+        _store_configuration(name, current_configuration);
+    }
+
+    function handle_store_configuration(event) {
+        event.preventDefault();
+        let name = store_configuration_form.elements.name.value;
+        if (name === '') {
+            alert('Must enter name');
+            return;
+        }
+        store_configuration(name);
+    }
+
+    function replace_configuration(el) {
+        reset_drawn_objects();
+        drawn_objs = stored_configurations[el.dataset.name].map(
+            o => Object.assign({}, o)
+        );
+        store_configuration_form.elements.name.value = el.dataset.name;
+
+        redraw();
+        save_state();
+    }
+
+    function remove_configuration(el) {
+        let name = el.dataset.name;
+        delete stored_configurations[name];
+        el.parentElement.remove();
+        save_state();
+    }
+
+    function handle_stored_configurations(event) {
+        event.preventDefault();
+        // would it be better to add a specific closure event listener to each
+        // object line as it gets created?
+        if (event.target.classList.contains('replace')) {
+            replace_configuration(event.target);
+        } else if (event.target.classList.contains('remove')) {
+            remove_configuration(event.target);
+        }
     }
 
     this.init = function() {
@@ -659,6 +749,10 @@ function RoomPlanner(_canvas) {
         object_inventory_div.addEventListener('click', handle_create_obj);
         reset_button.addEventListener('click', handle_reset);
         reset_objects_button.addEventListener('click', handle_reset_objects);
+        store_configuration_form.addEventListener(
+            'submit', handle_store_configuration);
+        stored_configurations_div.addEventListener(
+            'click', handle_stored_configurations);
 
         let state = window.localStorage.getItem(CACHE_KEY);
         if (state !== null) {
