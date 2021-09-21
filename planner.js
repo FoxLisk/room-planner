@@ -788,6 +788,6 @@ function RoomPlanner(_canvas) {
 
 document.addEventListener("DOMContentLoaded", function() {
     let canvas = document.getElementById('planner');
-    planner = new RoomPlanner(canvas);
+    var planner = new RoomPlanner(canvas);
     planner.init();
 });
